@@ -167,7 +167,7 @@
             <p>
               Ready to see this on your own photo? Unlock the DIY tool and upload your picture.
             </p>
-            <a href="https://yourcolorstyle.com/products/virtual-color-draping#order">
+            <a href="/clients">
               Unlock DIY tool
             </a>
           </div>
@@ -176,7 +176,7 @@
             <p>
               Ready to use this with your own client photos? Unlock the full Color Analysis Tool.
             </p>
-            <a href="https://yourcolorstyle.com/products/color-analysis-tool#order">
+            <a href="/clients">
               Unlock Color Analysis Tool
             </a>
           </div>
@@ -664,13 +664,7 @@
     </div>
 
     <div id="ycs-analysis-undertone-sections" class="ycs-analysis-undertone-sections"></div>
-    <div id="ycs-analysis-free-lock" class="ycs-analysis-free-lock" hidden>
-      <h2>{% if is_free_diy_catool %}Unlock the DIY Color Analysis Tool{% else %}Unlock the full Color Analysis Tool{% endif %}</h2>
-      <p>{% if is_free_diy_catool %}Unlock the DIY tool to upload your own photo and use the full color analysis experience on yourself.{% else %}Unlock the full Color Analysis Tool to upload your client photos and use the complete color analysis workflow.{% endif %}</p>
-      <a href="{% if is_free_diy_catool %}https://yourcolorstyle.com/products/virtual-color-draping#order{% else %}https://yourcolorstyle.com/products/color-analysis-tool#order{% endif %}" class="ycs-analysis-toolbar-link">
-        {% if is_free_diy_catool %}Unlock DIY Tool{% else %}Unlock Color Analysis Tool{% endif %}
-      </a>
-    </div>
+    <div id="ycs-analysis-free-lock" hidden></div>
   </div>
 
 

@@ -70,7 +70,7 @@ test('destination store cannot be pointed at the original YCS base',()=>{assert.
 test('all extracted screens build without the original backend or logo',async t=>{
  const {request}=await fixture(t);
  for(const path of ['/clients','/pages/photo-prep','/pages/color-analysis-tool','/pages/signature-color-analysis']) {
-  const response=await request(path);assert.equal(response.status,200);const html=await response.text();assert.ok(!html.includes('ycs-palette-app.vercel.app'));assert.ok(!html.includes('YourColorStyle_Logo'));assert.ok(!html.includes('{%'));assert.ok(!html.includes('cdn.shopify.com'));
+  const response=await request(path);assert.equal(response.status,200);const html=await response.text();assert.ok(!html.includes('ycs-palette-app.vercel.app'));assert.ok(!html.includes('YourColorStyle_Logo'));assert.ok(!html.includes('{%'));assert.ok(!html.includes('cdn.shopify.com'));assert.ok(!html.includes('https://yourcolorstyle.com/products/'));
  }
 });
 test('owner login issues a cookie that authorizes data access and logout expires it',async t=>{

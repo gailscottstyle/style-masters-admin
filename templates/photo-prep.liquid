@@ -304,7 +304,7 @@ data-is-sample-user="{% if is_sample_user %}true{% else %}false{% endif %}"
               Unlock the Professional Tool to upload client photos.
             {% endif %}
           </p>
-          <a href="{% if is_free_diy_catool %}https://yourcolorstyle.com/products/virtual-color-draping#order{% else %}https://yourcolorstyle.com/products/color-analysis-tool#order{% endif %}">
+          <a href="{% if is_free_diy_catool %}/clients{% else %}/clients{% endif %}">
             Unlock
           </a>
         </div>
@@ -1534,8 +1534,8 @@ const IS_FREE_ANALYSIS_DEMO_FLOW =
   IS_CATOOL_FREE_TRIAL_FLOW ||
   IS_FREE_DIY_CATOOL_FLOW;
 const FREE_ANALYSIS_UNLOCK_URL = IS_FREE_DIY_CATOOL_FLOW
-  ? 'https://yourcolorstyle.com/products/virtual-color-draping#order'
-  : 'https://yourcolorstyle.com/products/color-analysis-tool#order';
+  ? '/clients'
+  : '/clients';
 const SHOULD_TRACK_UPLOAD_USAGE = !(WORKFLOW === 'color-analysis' && !IS_PERSONAL_MODE);
 
 function addAdminPreviewParam(query) {
