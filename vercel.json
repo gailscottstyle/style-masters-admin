@@ -1,0 +1,1 @@
+{"buildCommand":"npm run build","outputDirectory":"dist","functions":{"api/index.js":{"includeFiles":"dist/pages/**"}},"rewrites":[{"source":"/((?!assets/).*)","destination":"/api/index"}]}
