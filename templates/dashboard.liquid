@@ -1,0 +1,43 @@
+<main class="ycs-palettes-hub"><header class="ycs-palettes-hub__header"><p class="ycs-palettes-hub__kicker">Style Masters</p><h1>Admin Dashboard</h1></header><div class="ycs-palettes-hub__grid">
+<article class="ycs-palettes-card"><div class="ycs-palettes-card__accent"></div><div class="ycs-palettes-card__body"><h2>Clients &amp; Members</h2><p>Manage your clients and members, their photos, and their color analysis.</p><a class="ycs-palettes-hub__button" href="/clients">Open Clients &amp; Members</a></div></article>
+<article class="ycs-palettes-card"><div class="ycs-palettes-card__accent"></div><div class="ycs-palettes-card__body"><h2>Color Palettes</h2><p>Explore YCS color palettes and create custom palettes for your clients.</p><a class="ycs-palettes-hub__button" href="/palettes">Open Color Palettes</a></div></article>
+</div></main><style>
+  .shopify-section-header, #shopify-section-header, .site-header, .header-wrapper, .header, #shopify-section-footer, .shopify-section--footer, .site-footer, footer.footer, footer[role="contentinfo"] { display: none !important; }
+  body { margin-top: 0 !important; padding-top: 0 !important; }
+  .ycs-palettes-hub { --ycs-palettes-navy:#12253f; --ycs-palettes-ink:#292832; --ycs-palettes-muted:#505868; --ycs-palettes-border:#ece8e3; --ycs-palettes-pro:#7b5cff; --ycs-palettes-pro-hover:#6546ce; --ycs-palettes-personal:#347fa5; --ycs-palettes-personal-hover:#24678b; max-width: 1180px; margin: 0 auto; padding: 28px 24px 72px; color: var(--ycs-palettes-ink); font-family: Poppins, Arial, Tahoma, Verdana, sans-serif; }
+  .ycs-palettes-hub__nav { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 42px; }
+  .ycs-palettes-hub__link { color: #4b4d55; font-size: 15px; font-weight: 600; text-decoration: none; }
+  .ycs-palettes-hub__link:hover { text-decoration: underline; }
+  .ycs-palettes-hub__header { max-width: 780px; margin-bottom: 42px; }
+  .ycs-palettes-hub__kicker { margin: 0 0 8px; color: #bd315b; font-size: 13px; font-weight: 700; letter-spacing: 0; text-transform: uppercase; }
+  .ycs-palettes-hub__header h1 { margin: 0 0 12px; color: var(--ycs-palettes-navy); font-family: Georgia, "Times New Roman", serif; font-size: 42px; font-weight: 400; line-height: 1.14; letter-spacing: 0; }
+  .ycs-palettes-hub__header > p:not(.ycs-palettes-hub__kicker) { margin: 0; color: var(--ycs-palettes-muted); font-size: 19px; line-height: 1.6; }
+  .ycs-palettes-hub__header .ycs-palettes-hub__button { margin-top: 22px; }
+  .ycs-palettes-hub__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
+  .ycs-palettes-card { overflow: hidden; border: 1px solid var(--ycs-palettes-border); border-radius: 24px; background: #fff; box-shadow: 0 18px 45px rgba(32,28,45,.08); transition: transform 200ms ease, box-shadow 200ms ease; }
+  .ycs-palettes-card:hover { transform: translateY(-3px); box-shadow: 0 22px 52px rgba(32,28,45,.12); }
+  .ycs-palettes-card__accent { height: 5px; background: var(--ycs-palettes-pro); }
+  .ycs-palettes-card--personal .ycs-palettes-card__accent { background: var(--ycs-palettes-personal); }
+  .ycs-palettes-card__body { display: flex; min-height: 230px; flex-direction: column; align-items: flex-start; padding: 28px; }
+  .ycs-palettes-card h2 { margin: 0 0 10px; color: var(--ycs-palettes-navy); font-size: 24px; font-weight: 700; line-height: 1.32; letter-spacing: 0; }
+  .ycs-palettes-card p { margin: 0 0 28px; color: var(--ycs-palettes-muted); font-size: 17px; line-height: 1.55; }
+  .ycs-palettes-hub__button { display: inline-flex; min-height: 46px; margin-top: auto; align-items: center; justify-content: center; border-radius: 10px; background: var(--ycs-palettes-pro); color: #fff; font-size: 15px; font-weight: 700; line-height: 1.2; padding: 12px 24px; text-decoration: none; transition: background-color 200ms ease, transform 200ms ease; }
+  .ycs-palettes-hub__button:hover { background: var(--ycs-palettes-pro-hover); color: #fff; transform: translateY(-1px); }
+  .ycs-palettes-card--personal .ycs-palettes-hub__button { background: var(--ycs-palettes-personal); }
+  .ycs-palettes-card--personal .ycs-palettes-hub__button:hover { background: var(--ycs-palettes-personal-hover); }
+  .ycs-palettes-hub__button:focus-visible { outline: 3px solid rgba(77,161,255,.55); outline-offset: 3px; }
+  .ycs-palettes-card__member-feature { display: flex; margin-top: auto; flex-direction: column; align-items: flex-start; gap: 12px; }
+  .ycs-palettes-card__member-feature strong { color: #5c31bd; font-size: 12px; font-weight: 800; letter-spacing: 0; }
+  .ycs-palettes-card__member-feature .ycs-palettes-hub__button { margin-top: 0; }
+  @media (prefers-reduced-motion: reduce) {
+    .ycs-palettes-card, .ycs-palettes-hub__button { transition: none; }
+    .ycs-palettes-card:hover, .ycs-palettes-hub__button:hover { transform: none; }
+  }
+  @media (max-width: 720px) {
+    .ycs-palettes-hub { padding: 22px 16px 52px; }
+    .ycs-palettes-hub__nav { margin-bottom: 30px; }
+    .ycs-palettes-hub__header h1 { font-size: 32px; }
+    .ycs-palettes-hub__grid { grid-template-columns: 1fr; }
+    .ycs-palettes-card__body { min-height: 205px; padding: 24px; }
+  }
+</style>

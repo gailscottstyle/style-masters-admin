@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { resolve, extname, join } from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { customPalettes } from './custom-palettes.js';
 import { Store } from './store.js';
 import { customerInput, customerView } from './customers.js';
 import { passwordMatches, readSession, sessionToken, signSession } from './auth.js';
@@ -10,7 +11,7 @@ const json = (body, status = 200) => Response.json(body, { status });
 const redirect = (location, headers = {}) => new Response(null, { status: 303, headers: { Location: location, ...headers } });
 const escape = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const MIME = { '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.svg': 'image/svg+xml' };
-const pages = { '/clients': 'my-clients', '/pages/my-clients': 'my-clients', '/pages/photo-prep': 'photo-prep', '/pages/color-analysis-tool': 'color-analysis-tool', '/pages/signature-color-analysis': 'signature-color-analysis' };
+const pages = { '/': 'dashboard', '/palettes': 'palettes', '/pages/ycs-color-palettes': 'ycs-palettes', '/pages/my-custom-palettes': 'custom-palettes', '/pages/member-palette': 'palette-viewer', '/pages/palette': 'palette-viewer', '/pages/member-color': 'color-viewer', '/clients': 'my-clients', '/pages/my-clients': 'my-clients', '/pages/photo-prep': 'photo-prep', '/pages/color-analysis-tool': 'color-analysis-tool', '/pages/signature-color-analysis': 'signature-color-analysis' };
 const writeRoutes = new Set(['create-consultant-client','update-consultant-client','delete-consultant-client','save-photo','save-photo-transform','set-active-photo','save-draped-image','save-saved-draped-image','save-color-analysis-report','upload-report-logo','remove-background']);
 
 export function createApp({ env = process.env, directory = resolve('.local'), dist = resolve('dist'), store = new Store({ directory, token: env.DEMO_MODE === 'true' && !env.VERCEL && env.NODE_ENV !== 'production' ? '' : env.AIRTABLE_TOKEN, baseId: env.AIRTABLE_BASE_ID }) } = {}) {
@@ -48,7 +49,7 @@ export function createApp({ env = process.env, directory = resolve('.local'), di
       return new Response('Style Masters setup is not complete. Configure administrator login, session secret, and Airtable credentials before deployment.', { status: 503 });
     }
     if (path === '/login') {
-      if (localDemo) return redirect('/clients');
+      if (localDemo) return redirect('/');
       if (request.method === 'GET') return loginPage();
       if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
       const ip = request.headers.get('x-real-ip') || request.headers.get('x-forwarded-for') || 'local';
@@ -61,12 +62,11 @@ export function createApp({ env = process.env, directory = resolve('.local'), di
       const matches = passwordMatches(String(form.get('password') || ''), env.ADMIN_PASSWORD_HASH);
       if (String(form.get('email') || '').trim().toLowerCase() !== email.toLowerCase() || !matches) return loginPage('Email or password is incorrect.');
       attempts.delete(ip);
-      return redirect('/clients', { 'Set-Cookie': `sm_session=${signSession(email, secret)}; Path=/; HttpOnly; SameSite=Strict; Max-Age=28800${url.protocol === 'https:' ? '; Secure' : ''}` });
+      return redirect('/', { 'Set-Cookie': `sm_session=${signSession(email, secret)}; Path=/; HttpOnly; SameSite=Strict; Max-Age=28800${url.protocol === 'https:' ? '; Secure' : ''}` });
     }
     const session = localDemo ? { email } : readSession(sessionToken(request), secret, email);
     if (!session) return path.startsWith('/api/') || path.startsWith('/apps/') ? json({ error: 'Sign in required.' }, 401) : redirect('/login');
     if (path === '/logout' && request.method === 'POST') return redirect('/login', { 'Set-Cookie': 'sm_session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0' });
-    if (path === '/') return redirect('/clients');
     if (pages[path]) return file(join(dist, 'pages', `${pages[path]}.html`));
     if (path.startsWith('/uploads/') && localDemo && /^[\w.-]+$/.test(path.slice(9))) return file(join(directory, 'uploads', path.slice(9)));
     if (path === '/api/session') return json({ email, demo: localDemo, backgroundRemoval: !!env.REMOVE_BG_API_KEY });
@@ -158,6 +158,22 @@ export function createApp({ env = process.env, directory = resolve('.local'), di
       return new Response(upstream.body, { headers: { 'Content-Type': upstream.headers.get('content-type') } });
     }
     if (path === '/apps/palette-data') {
+      const action=q.get('action');
+      if (action === 'getFavorites' || action === 'toggleFavorite') {
+        const code=String(body.paletteCode || q.get('palette') || '');
+        if(!code || code.length>100)return json({error:'Choose a palette.'},400);
+        const id='favorites:'+code, row=await store.get('CustomPalettes',id) || {id,kind:'favorites',hexes:[]};
+        if(action==='getFavorites')return json({favorites:row.hexes});
+        if(request.method!=='POST')return json({error:'Method not allowed.'},405);
+        const hex=String(body.hex || '').toUpperCase();if(!/^#[0-9A-F]{6}$/.test(hex))return json({error:'Invalid color.'},400);
+        const isFavorite=!row.hexes.includes(hex);row.hexes=isFavorite?[...row.hexes,hex]:row.hexes.filter(h=>h!==hex);
+        await store.put('CustomPalettes',row);return json({success:true,isFavorite});
+      }
+      if ((q.get('palette') || '').startsWith('CUSTOM_')) {
+        const result=await customPalettes(store,'GET',new URLSearchParams({action:'palette',paletteId:q.get('palette').slice(7)}),{});
+        return json({colors:result.palette.colors.map((j,index)=>({name:j.color.name,hex:j.color.hexCode,category:j.color.category,sortOrder:index}))});
+      }
+
       if (q.get('action') === 'deleteSavedDrapedImages' && request.method === 'POST') {
         await customer(body.clientRecordId);
         for (const imageId of body.imageIds || []) {
@@ -173,27 +189,7 @@ export function createApp({ env = process.env, directory = resolve('.local'), di
       }).map(r => ({ name: r.fields.ColorName, hex: r.fields.DisplayHex || r.fields.Hex, category: r.fields.Category || r.fields.CategoryNames || '', categories: r.fields.CategoryNames || r.fields.Category || '', chroma: r.fields.Chroma || '', temperature: r.fields.Temperature || '', depth: r.fields.Depth || '', isNeutral: !!r.fields.IsNeutral, neutralDepth: r.fields.NeutralDepth || '', neutralFamily: r.fields.NeutralFamily || '', isBest: String(r.fields.BestPaletteCodes || '').split(/[,;\s]+/).includes(palette), sortOrder: r.fields.SortOrder || 0 })).sort((a,b) => a.sortOrder-b.sortOrder);
       return json(lip ? { lipColors: colors } : { colors });
     }
-    if (route === 'custom-palettes') {
-      const rows = await store.list('CustomPalettes');
-      if (request.method === 'GET') return json(q.get('action') === 'palette' ? { palette: rows.find(r => r.id === q.get('paletteId')) || null } : { palettes: rows.filter(r => r.kind === 'palette'), colors: rows.filter(r => r.kind === 'color') });
-      if (body.action === 'createColor') {
-        if (!/^#[\da-f]{6}$/i.test(body.hexCode)) return json({ error: 'Enter a six-digit hex color.' }, 400);
-        const color = { id: randomUUID(), colorId: '', kind: 'color', name: String(body.name || ''), hexCode: body.hexCode }; color.colorId = color.id;
-        await store.put('CustomPalettes', color); return json({ success: true, color });
-      }
-      if (body.action === 'createPalette') {
-        const palette = { id: randomUUID(), paletteId: '', kind: 'palette', name: String(body.name || ''), colors: [] }; palette.paletteId = palette.id;
-        await store.put('CustomPalettes', palette); return json({ success: true, palette });
-      }
-      if (body.action === 'addColorsToPalette') {
-        const palette = rows.find(r => r.id === body.paletteId && r.kind === 'palette');
-        if (!palette) return json({ error: 'Palette not found.' }, 404);
-        const colors = rows.filter(r => r.kind === 'color' && body.colorIds?.includes(r.id));
-        const joined = new Map(palette.colors.map(r => [r.color.id,r])); colors.forEach(color => joined.set(color.id, { color, displayOrder: joined.size }));
-        palette.colors = [...joined.values()]; await store.put('CustomPalettes', palette); return json({ success: true, palette });
-      }
-      return json({ error: 'Unsupported palette operation.' }, 400);
-    }
+    if (route === 'custom-palettes') return json(await customPalettes(store, request.method, q, body));
     return json({ error: 'Not found.' }, 404);
   }
   return async request => {

@@ -50,3 +50,13 @@ Tests cover authentication and production demo guards, classification persistenc
 ## Source provenance
 
 The four templates and three studio/client scripts were adapted from the local MY YCS working tree on October 27, 2026, including its uncommitted client/report improvements. Original source remains untouched. Liquid is used only at build time to preserve the inherited presentation; the deployed application has no Shopify dependency. Preserved internal `ycs-` CSS/DOM identifiers are compatibility hooks, not access controls.
+
+## Dashboard and palettes
+
+The home page has exactly two cards: Clients & Members and Color Palettes. The palette hub, collection, custom palette editor, color fan, and color detail UI are adapted from the newer My YCS professional screens in the client-multiple-photos checkout. All calls use the standalone authenticated backend. Custom colors and palettes support editing, assignments, ordering, CSV creation/append, and archival; favorites are stored independently by palette. Original YCS logos and storefront dependencies are removed. Missing depth metadata does not hide a color.
+
+The local preview uses sample colors. The actual YCS reference colors must be migrated before production palette review. The current extracted Trade editor does not provide public client share links; adding the handoff document's newer public sharing flow remains a separate parity item.
+
+## Vercel setup message
+
+“Style Masters setup is not complete” is returned intentionally until `ADMIN_PASSWORD_HASH`, a `SESSION_SECRET` of at least 32 characters, and `AIRTABLE_TOKEN` are configured. Use Gail's destination Airtable token, with record read/write and schema read/write permissions restricted to the destination base. Create the destination tables with `scripts/prepare-airtable.js --apply` before loading customer or palette data. Add Gail's Cloudinary settings before uploading photos. Environment changes require a new deployment. Never enable sample mode as a production workaround.

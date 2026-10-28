@@ -8,12 +8,13 @@ await mkdir('dist/pages', { recursive: true });
 await cp('public/assets', 'dist/assets', { recursive: true });
 // Render only the professional workflow; these are presentation flags, never authorization.
 // All data and pages are independently guarded by src/app.js sessions.
-const context = { customer: { id: 'style-masters', tags: ['TRADE'], first_name: 'Gail', email: '' }, routes: { account_url: '/clients', account_login_url: '/login' }, content_for_header: '"pageurl":"/pages/photo-prep?mode=trade&workflow=color-analysis"' };
-for (const name of ['my-clients', 'photo-prep', 'color-analysis-tool', 'signature-color-analysis']) {
-  const template = await readFile(`templates/${name}.liquid`, 'utf8');
-  const content = await engine.parseAndRender(template, context);
-  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Style Masters Admin Dashboard</title><link rel="stylesheet" href="/assets/standalone.css"><script src="/assets/session.js" defer></script></head><body><header class="sm-header"><a class="sm-brand" href="/clients">Style Masters</a><form action="/logout" method="post"><button>Sign out</button></form></header><div class="sm-demo" data-demo-banner hidden>Local preview · Sample customers only · Changes are saved on this computer</div>${content}<script defer src="/assets/photo-library.js"></script></body></html>`;
+const context = { customer: { id: 'style-masters', tags: ['TRADE'], first_name: 'Gail', email: '' }, routes: { account_url: '/', account_login_url: '/login' }, content_for_header: '"pageurl":"/pages/photo-prep?mode=trade&workflow=color-analysis"' };
+const paletteSection = JSON.parse(await readFile('src/palette-cards.json', 'utf8'));
+for (const name of ['dashboard', 'palettes', 'ycs-palettes', 'custom-palettes', 'palette-viewer', 'color-viewer', 'my-clients', 'photo-prep', 'color-analysis-tool', 'signature-color-analysis']) {
+  const template = await readFile(`templates/${name === 'custom-palettes' ? 'ycs-palettes' : name}.liquid`, 'utf8');
+  const content = await engine.parseAndRender(template, { ...context, section: { ...paletteSection, settings: { ...paletteSection.settings, member_view: name === 'custom-palettes' ? 'custom' : 'ycs', heading: name === 'custom-palettes' ? 'My Custom Palettes' : 'YCS Color Palettes', intro: name === 'custom-palettes' ? 'Create and manage personalized color palettes using your own custom colors.' : 'Explore the complete collection of Your Color Style color palettes.' } } });
+  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Style Masters Admin Dashboard</title><link rel="stylesheet" href="/assets/standalone.css"><script src="/assets/session.js" defer></script></head><body><header class="sm-header"><a class="sm-brand" href="/">Style Masters</a><form action="/logout" method="post"><button>Sign out</button></form></header><div class="sm-demo" data-demo-banner hidden>Local preview · Sample customers only · Changes are saved on this computer</div>${content}<script defer src="/assets/photo-library.js"></script></body></html>`;
   if (html.includes('https://ycs-palette-app.vercel.app')) throw new Error('Original backend reference survived extraction');
   await writeFile(`dist/pages/${name}.html`, html);
 }
-console.log('Built Clients & Members, Photo Prep, Structured Analysis, and Lip & Draping Studio.');
+console.log('Built dashboard, palettes, Clients & Members, and studio screens.');
