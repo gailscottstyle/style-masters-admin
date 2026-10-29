@@ -31,7 +31,8 @@ const store=new Store({token:env.AIRTABLE_TOKEN,baseId:DESTINATION_BASE});
 let manifest;
 try {manifest=JSON.parse(await readFile('migration-private/import-manifest.json','utf8'));}catch(e){if(e.code!=='ENOENT')throw e;manifest={destination:DESTINATION_BASE,cloud:env.CLOUDINARY_CLOUD_NAME,urls:{},records:{}};}
 if(manifest.destination!==DESTINATION_BASE||manifest.cloud!==env.CLOUDINARY_CLOUD_NAME)throw Error('Migration destination changed; review the manifest first.');
-const persist=async()=>{await writeFile('migration-private/import-manifest.tmp',JSON.stringify(manifest,null,2),{mode:0o600});await rename('migration-private/import-manifest.tmp','migration-private/import-manifest.json');};
+let persistQueue=Promise.resolve();
+const persist=()=>persistQueue=persistQueue.then(async()=>{await writeFile('migration-private/import-manifest.tmp',JSON.stringify(manifest,null,2),{mode:0o600});await rename('migration-private/import-manifest.tmp','migration-private/import-manifest.json');});
 // Fetch all tables before copying media to detect missing schema and conflicting rows early.
 const existing={};for(const table of Object.keys(plan.tables)){existing[table]=await store.list(table);await new Promise(r=>setTimeout(r,230));}
 function hash(value){return createHash('sha256').update(JSON.stringify(value)).digest('hex');}
@@ -40,8 +41,11 @@ for(const [table,rows] of Object.entries(plan.tables))for(const row of rows) {
  const {_recordId,...data}=found;
  if(!manifest.records[`${table}:${row.id}`]||manifest.records[`${table}:${row.id}`].hash!==hash(data))throw Error(`Existing or edited destination record ${table}:${row.id}; resolve before rerunning.`);
 }
-for(const url of urls) {
- if(manifest.urls[url])continue;
+const remainingUrls=[...urls].filter(url=>!manifest.urls[url]);
+let nextUrl=0;
+async function copyWorker(){
+ while(nextUrl<remainingUrls.length){
+ const url=remainingUrls[nextUrl++];
  const response=await fetch(url,{redirect:'error'});if(!response.ok||!response.headers.get('content-type')?.startsWith('image/'))throw Error(`A source image is unavailable (${response.status}). Refresh the export and retry.`);
  const bytes=Buffer.from(await response.arrayBuffer());if(bytes.length>25*1024*1024)throw Error('Source image exceeds the migration size limit.');
  const publicId=`style-masters/migrated/${hash(url).slice(0,40)}`,timestamp=Math.floor(Date.now()/1000);
@@ -54,6 +58,8 @@ for(const url of urls) {
  manifest.urls[url]={url:data.secure_url,publicId:data.public_id,sourceSha256:createHash('sha256').update(bytes).digest('hex')};await persist();
  if(Object.keys(manifest.urls).length%25===0)console.log(`Copied media: ${Object.keys(manifest.urls).length}/${urls.size}`);
 }
+}
+await Promise.all(Array.from({length:4},()=>copyWorker()));
 function replaceUrls(value) {
  if(typeof value==='string'){for(const [from,to]of Object.entries(manifest.urls))value=value.split(from).join(to.url);return value;}
  if(Array.isArray(value))return value.map(replaceUrls);

@@ -22,19 +22,21 @@ Open http://127.0.0.1:4317/clients. This uses invented sample customers and expl
 - No YCS logo. Existing studio/reference graphics are vendored locally; provenance is in docs/asset-provenance.json.
 - Airtable storage adapter, schema preview/provisioning, read-only source export, pure migration mapping, and resumable destination import/media-copy scripts.
 
-## Production setup (not yet deployed)
+## Production setup
 
 1. In Gail's Vercel team, connect `gailscottstyle/style-masters-admin`. Build: `npm run build`. Node runtime: 22 or later. The Vercel function and routing are in `api/index.js` and `vercel.json`.
 2. Configure environment variables from `.env.example`. Set `DEMO_MODE=false`; configure only Gail's Airtable and Cloudinary service credentials. The destination base is guarded to prevent writes to the YCS source.
 3. Run `npm run password` locally in an interactive terminal. It reads a new password without echo and outputs the hash and session secret for Vercel's secure environment fields. Gail keeps the password. Default administrator email: gailscottstyle@gmail.com. Changing the session secret revokes all sessions.
 4. Configure Vercel rate limiting for POST /login before a public launch. Only a single owner login is included in this initial port; staff invitations, password reset email, and MFA are not implemented.
 5. Automatic background removal is optional and needs Gail's own `REMOVE_BG_API_KEY`. Without it, the checkbox is disabled and original uploads/color adjustments work normally.
-6. Provision the reviewed Airtable schema, run the migration pilot, verify counts/media, and import the final source data as described in docs/MIGRATION.md. Do not seed sample swatches in production.
+6. Provision the reviewed Airtable schema, verify counts/media and import the final source data as described in docs/MIGRATION.md. Do not seed sample swatches in production.
 7. Verify the Vercel deployment's login, authenticated routes, uploads, real colors, reports, photo selection, and mobile layout using the configured destination accounts before cutover.
 
 ## Data model
 
 Customers, Photos, SavedImages, Reports, ReferenceData, SourceArchive, and CustomPalettes each have a durable Key plus a Data JSON payload. Customers also exposes Name, Email, MembershipStatus, IsClient, and ColorType as Airtable fields. MembershipStatus and IsClient edits in Airtable are authoritative; edit other customer details through the app to keep the payload synchronized. Server requests paginate all records.
+
+ReferenceData and SourceArchive use versioned JSON groups to preserve all original entries in fewer Airtable rows. The application expands reference groups when reading palette colors and report templates. Migration writes are batched in groups of ten records.
 
 Deleting a customer or saved image in the initial application archives it; physical images/source snapshots are retained. There is no automatic source deletion.
 
