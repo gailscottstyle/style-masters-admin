@@ -14,10 +14,10 @@ export async function uploadImage(data, { demo, directory, env }) {
   }
   const { CLOUDINARY_CLOUD_NAME: cloud, CLOUDINARY_API_KEY: key, CLOUDINARY_API_SECRET: secret } = env;
   if (!cloud || !key || !secret) throw new Error('Cloudinary is not configured yet.');
-  const timestamp = Math.floor(Date.now() / 1000), folder = 'style-masters';
-  const signature = createHash('sha1').update(`folder=${folder}&timestamp=${timestamp}${secret}`).digest('hex');
+  const timestamp = Math.floor(Date.now() / 1000), asset_folder = 'style-masters';
+  const signature = createHash('sha1').update(`asset_folder=${asset_folder}&timestamp=${timestamp}${secret}`).digest('hex');
   const body = new FormData();
-  Object.entries({ file: data, folder, timestamp, api_key: key, signature }).forEach(([k, v]) => body.append(k, v));
+  Object.entries({ file: data, asset_folder, timestamp, api_key: key, signature }).forEach(([k, v]) => body.append(k, v));
   const response = await fetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(cloud)}/image/upload`, { method: 'POST', body });
   const result = await response.json();
   if (!response.ok) throw new Error('Photo upload failed. Please try again.');

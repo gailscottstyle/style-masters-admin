@@ -42,9 +42,9 @@ for(const url of urls) {
  const response=await fetch(url,{redirect:'error'});if(!response.ok||!response.headers.get('content-type')?.startsWith('image/'))throw Error(`A source image is unavailable (${response.status}). Refresh the export and retry.`);
  const bytes=Buffer.from(await response.arrayBuffer());if(bytes.length>25*1024*1024)throw Error('Source image exceeds the migration size limit.');
  const publicId=`style-masters/migrated/${hash(url).slice(0,40)}`,timestamp=Math.floor(Date.now()/1000);
- const signature=createHash('sha1').update(`overwrite=false&public_id=${publicId}&timestamp=${timestamp}${env.CLOUDINARY_API_SECRET}`).digest('hex');
+ const signature=createHash('sha1').update(`asset_folder=style-masters&overwrite=false&public_id=${publicId}&timestamp=${timestamp}${env.CLOUDINARY_API_SECRET}`).digest('hex');
  const body=new FormData();body.append('file',new Blob([bytes],{type:response.headers.get('content-type')}),'image');
- for(const [key,value]of Object.entries({overwrite:'false',public_id:publicId,timestamp,api_key:env.CLOUDINARY_API_KEY,signature}))body.append(key,value);
+ for(const [key,value]of Object.entries({asset_folder:'style-masters',overwrite:'false',public_id:publicId,timestamp,api_key:env.CLOUDINARY_API_KEY,signature}))body.append(key,value);
  const uploaded=await fetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(env.CLOUDINARY_CLOUD_NAME)}/image/upload`,{method:'POST',body});
  const data=await uploaded.json();if(!uploaded.ok||!data.secure_url)throw Error('Destination Cloudinary upload failed.');
  const verify=await fetch(data.secure_url,{method:'HEAD'});if(!verify.ok)throw Error('Copied image could not be verified.');
