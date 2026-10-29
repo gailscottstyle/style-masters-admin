@@ -2,6 +2,7 @@
 import { readFile, writeFile, mkdir, rename } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { Store, DESTINATION_BASE } from '../src/store.js';
+import { compactRecords } from '../src/compact-records.js';
 const plan=JSON.parse(await readFile('migration-private/migration-plan.json','utf8'));
 const apply=process.argv.includes('--apply');
 const limitArg=process.argv.find(value=>value.startsWith('--limit='));
@@ -11,6 +12,8 @@ if(limitArg){
  for(const table of ['Photos','SavedImages','Reports','SourceArchive'])plan.tables[table]=plan.tables[table].filter(row=>ids.has(row.clientRecordId));
  plan.counts=Object.fromEntries(Object.entries(plan.tables).map(([table,rows])=>[table,rows.length]));
 }
+for(const table of ['ReferenceData','SourceArchive']) plan.tables[table]=compactRecords(plan.tables[table],table);
+plan.counts=Object.fromEntries(Object.entries(plan.tables).map(([table,rows])=>[table,rows.length]));
 const allowedHost=host=>host==='res.cloudinary.com'||host==='cdn.shopify.com'||host.endsWith('.airtableusercontent.com');
 function imageUrls(value, urls=new Set()) {
  if(typeof value==='string') {
@@ -49,6 +52,7 @@ for(const url of urls) {
  const data=await uploaded.json();if(!uploaded.ok||!data.secure_url)throw Error('Destination Cloudinary upload failed.');
  const verify=await fetch(data.secure_url,{method:'HEAD'});if(!verify.ok)throw Error('Copied image could not be verified.');
  manifest.urls[url]={url:data.secure_url,publicId:data.public_id,sourceSha256:createHash('sha256').update(bytes).digest('hex')};await persist();
+ if(Object.keys(manifest.urls).length%25===0)console.log(`Copied media: ${Object.keys(manifest.urls).length}/${urls.size}`);
 }
 function replaceUrls(value) {
  if(typeof value==='string'){for(const [from,to]of Object.entries(manifest.urls))value=value.split(from).join(to.url);return value;}
@@ -56,13 +60,25 @@ function replaceUrls(value) {
  if(value&&typeof value==='object')return Object.fromEntries(Object.entries(value).map(([k,v])=>[k,replaceUrls(v)]));
  return value;
 }
-for(const [table,rows]of Object.entries(plan.tables))for(const original of rows) {
+for(const [table,rows]of Object.entries(plan.tables)) {
+ const pending=[];
+ for(const original of rows) {
  const row=replaceUrls(original);if(original.imageUrl&&manifest.urls[original.imageUrl])row.cloudinaryPublicId=manifest.urls[original.imageUrl].publicId;const key=`${table}:${row.id}`;
  if(JSON.stringify(row).length>95000)throw Error(`Record ${key} is too large for Airtable Data; split the archived payload before importing.`);
  const found=existing[table].find(r=>r.id===row.id);
  if(found&&manifest.records[key]?.hash===hash(row))continue;
- await store.put(table,{...row,...(found?{_recordId:found._recordId}:{})});
- manifest.records[key]={hash:hash(row)};await persist();await new Promise(r=>setTimeout(r,450));
+ pending.push({row,found,key});
+ }
+ for(const updating of [false,true]) {
+ const selected=pending.filter(item=>!!item.found===updating);
+ for(let i=0;i<selected.length;i+=10) {
+ const batch=selected.slice(i,i+10);
+ await store.airtable(table,'',{method:updating?'PATCH':'POST',body:JSON.stringify({records:batch.map(({row,found})=>({... (found?{id:found._recordId}:{}),fields:store.fields(table,row)}))})});
+ for(const {row,key} of batch)manifest.records[key]={hash:hash(row)};
+ await persist();await new Promise(r=>setTimeout(r,250));
+ }
+ }
+ console.log(`Imported ${table}: ${rows.length}`);
 }
 const verified={};for(const [table,rows]of Object.entries(plan.tables)){
  const imported=await store.list(table);for(const row of rows){const found=imported.find(r=>r.id===row.id);if(!found)throw Error(`Missing imported record ${table}:${row.id}`);const {_recordId,...data}=found;const expected=replaceUrls(row);if(row.imageUrl&&manifest.urls[row.imageUrl])expected.cloudinaryPublicId=manifest.urls[row.imageUrl].publicId;if(hash(data)!==hash(expected))throw Error(`Imported record mismatch ${table}:${row.id}`);}

@@ -14,3 +14,16 @@ test('migration fails closed for wrong source or duplicate identities',()=>{
  assert.throws(()=>prepareMigration({baseId:'wrong',tables:{}}));
  assert.throws(()=>prepareMigration({baseId:SOURCE_BASE,tables:{CustomerDirectory:[{id:'a',fields:{CustomerId:'1'}},{id:'b',fields:{CustomerId:'1'}}]}}),/duplicate/);
 });
+
+test('compact archives and references preserve every original field within row limits', async()=>{
+ const {compactRecords,expandRecords}=await import('../src/compact-records.js');
+ const rows=Array.from({length:25},(_,i)=>({id:`r${i}`,table:i%2?'Colors':'Palettes',clientRecordId:`c${i%3}`,fields:{text:'é'.repeat(100),value:i}}));
+ for(const table of ['ReferenceData','SourceArchive']) {
+  const packed=compactRecords(rows,table,1800);
+  assert.ok(packed.length<rows.length);
+  assert.ok(packed.every(row=>Buffer.byteLength(JSON.stringify(row))<=1800));
+  const sorted=items=>items.sort((a,b)=>a.id.localeCompare(b.id));
+  assert.deepEqual(sorted(expandRecords(packed)),sorted([...rows]));
+  assert.deepEqual(compactRecords(packed,table,1800),packed);
+ }
+});

@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { resolve, extname, join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { customPalettes } from './custom-palettes.js';
+import { expandRecords } from './compact-records.js';
 import { Store } from './store.js';
 import { customerInput, customerView } from './customers.js';
 import { passwordMatches, readSession, sessionToken, signSession } from './auth.js';
@@ -138,7 +139,7 @@ export function createApp({ env = process.env, directory = resolve('.local'), di
       await store.put('Reports', report); return json({ success: true, report });
     }
     if (route === 'get-report-palette-template') {
-      const record = await store.get('ReferenceData', `Report Palette Templates:${q.get('paletteCode')}`);
+      const record = expandRecords(await store.list('ReferenceData')).find(r => r.id === `Report Palette Templates:${q.get('paletteCode')}`);
       const f = record?.fields; return json({ template: f ? { paletteCode: f['Palette Code'], colorFanImageUrl: f['Color Fan Image URL'], colorWheelImageUrl: f['Color Wheel Image URL'], copy: { intro: f['Intro Copy'], howItWorks: f['How It Works Copy'], colorWheel: f['Color Wheel Copy'], depth: f['Default Depth'], undertone: f['Default Undertone'], chroma: f['Default Chroma'], paletteType: f['Palette Type Copy'] } } : null });
     }
     if (route === 'upload-report-logo') { const media = await upload(body.imageBase64); return json({ success: true, ...media, logoUrl: media.imageUrl }); }
@@ -184,7 +185,7 @@ export function createApp({ env = process.env, directory = resolve('.local'), di
         return json({ success: true });
       }
       const lip = q.get('action') === 'getSignatureLipColors', palette = (q.get('palette') || '').toUpperCase();
-      const colors = (await store.list('ReferenceData')).filter(r => r.table === (lip ? 'PaletteLipColors' : 'Colors')).filter(r => {
+      const colors = expandRecords(await store.list('ReferenceData')).filter(r => r.table === (lip ? 'PaletteLipColors' : 'Colors')).filter(r => {
         const f = r.fields; return String(lip ? f.PaletteCode : (palette.startsWith('ADMIN_') ? f.AdminPaletteCodes : f.PaletteCodes_Final_Manual || f.PaletteCodes) || '').toUpperCase().split(/[,;\s]+/).includes(palette);
       }).map(r => ({ name: r.fields.ColorName, hex: r.fields.DisplayHex || r.fields.Hex, category: r.fields.Category || r.fields.CategoryNames || '', categories: r.fields.CategoryNames || r.fields.Category || '', chroma: r.fields.Chroma || '', temperature: r.fields.Temperature || '', depth: r.fields.Depth || '', isNeutral: !!r.fields.IsNeutral, neutralDepth: r.fields.NeutralDepth || '', neutralFamily: r.fields.NeutralFamily || '', isBest: String(r.fields.BestPaletteCodes || '').split(/[,;\s]+/).includes(palette), sortOrder: r.fields.SortOrder || 0 })).sort((a,b) => a.sortOrder-b.sortOrder);
       return json(lip ? { lipColors: colors } : { colors });
