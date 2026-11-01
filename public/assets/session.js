@@ -3,6 +3,7 @@ const originalFetch = window.fetch.bind(window);
 window.fetch = async (input, options) => {
   const response = await originalFetch(input, options);
   if (response.status === 401 && new URL(typeof input === 'string' ? input : input.url, location.href).origin === location.origin) location.assign('/login');
+  if(response.ok && options?.method === 'POST' && String(input).includes('/api/save-photo')) document.dispatchEvent(new Event('sm:photos-updated'));
   return response;
 };
 fetch('/api/session').then(r => r.json()).then(data => {
@@ -21,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
    if(url.pathname==='/pages/photo-prep')url.searchParams.set('workflow','color-analysis');
    link.href=url.pathname+url.search;
   }
-  if(link.id==='ycs-signature-manage-client-nav-link') {
+  if(link.id==='ycs-signature-manage-client-nav-link' || link.hasAttribute('data-sm-manage-client')) {
    link.hidden=false;link.href='/clients?clientRecordId='+encodeURIComponent(id)+'&edit=1';
   }
  }

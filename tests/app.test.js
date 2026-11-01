@@ -109,3 +109,21 @@ test('custom palette CSV, edits, ordering, assignments, archival and favorites p
  await mutate({action:'deleteColor',colorId:redId});await mutate({action:'deletePalette',paletteId:other.id});
  const listed=await (await request('/api/custom-palettes')).json();assert.ok(!listed.colors.some(c=>c.id===redId));assert.ok(!listed.palettes.some(p=>p.id===other.id));assert.equal((await store.get('CustomPalettes',other.id)).archived,true);
 });
+
+test('photo selection restores its own position and lips; deletion preserves drapes and other customers',async t=>{
+ const {request,store}=await fixture(t);
+ const make=async name=>(await (await request('/api/create-consultant-client',{firstName:name,lastName:'Sample'})).json()).id;
+ const id=await make('Photos'),other=await make('Other');
+ const lipMask={shapes:[{points:[{x:.2,y:.3}],closed:true}]};
+ for(const [key,x] of [['first',1],['second',2]])await store.put('Photos',{id:key,clientRecordId:id,imageUrl:`https://example.com/${key}.png`,photoTransform:{x,y:3,scale:1.4},lipMask});
+ await store.put('SavedImages',{id:'drape',clientRecordId:id,imageUrl:'https://example.com/drape.png'});
+ assert.equal((await request('/api/delete-customer-photo',{clientRecordId:other,photoId:'first'})).status,404);
+ await request('/api/set-active-photo',{clientRecordId:id,photoId:'second'});
+ let loaded=await (await request('/api/get-photo?clientRecordId='+id)).json();assert.equal(loaded.photoTransform.x,2);assert.deepEqual(loaded.lipMask,lipMask);
+ await request('/api/delete-customer-photo',{clientRecordId:id,photoId:'second'});
+ loaded=await (await request('/api/get-photo?clientRecordId='+id)).json();assert.equal(loaded.activePhotoId,'first');assert.equal(loaded.photoTransform.x,1);assert.deepEqual(loaded.lipMask,lipMask);
+ assert.equal((await store.get('Photos','second')).archived,true);assert.ok(await store.get('SavedImages','drape'));
+ await request('/api/delete-customer-photo',{clientRecordId:id,photoId:'first'});
+ loaded=await (await request('/api/get-photo?clientRecordId='+id)).json();assert.equal(loaded.activePhotoUrl,'');assert.equal(loaded.photoTransform,null);
+ assert.equal((await request('/api/delete-customer-photo')).status,405);
+});

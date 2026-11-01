@@ -241,7 +241,7 @@ data-is-sample-user="{% if is_sample_user %}true{% else %}false{% endif %}"
 
   {% elsif can_use_photo_prep != true %}
   <div class="ycs-photo-prep-card ycs-photo-prep-card--center">
-    <h1>Photo Prep</h1><label class="sm-check"><input type="checkbox" data-sm-remove-background disabled> Remove background automatically <small data-sm-remove-background-note>(requires service setup)</small></label>
+    <h1>Photo Prep</h1>
     <p>This tool is not available for your account.</p>
   </div>
 
@@ -278,7 +278,7 @@ data-is-sample-user="{% if is_sample_user %}true{% else %}false{% endif %}"
             Photo Prep
           {% endif %}
         </h1>
-        <label class="sm-check"><input type="checkbox" data-sm-remove-background disabled> Remove background automatically <small data-sm-remove-background-note>(requires service setup)</small></label>
+
         <p id="ycs-photo-prep-subtitle" class="ycs-photo-prep-subtitle">
           {% if is_personal_mode_request %}
             Upload a photo, make adjustments, then continue to Draping Studio.

@@ -142,14 +142,16 @@
 
 
     <div class="ycs-analysis-shell">
-      <div class="ycs-analysis-topnav">
-        <a href="/pages/photo-prep?mode=trade&workflow=color-analysis" id="ycs-analysis-back" class="ycs-analysis-back-link">
-          ← Back to Client List
-        </a>
-      </div>
+      <nav class="sm-studio-nav" aria-label="Color analysis tools">
+        <a href="/clients" id="ycs-analysis-back">Clients &amp; Members</a>
+        <a href="/clients" data-sm-manage-client>Manage Client</a>
+        <a id="ycs-analysis-photo-prep-link" href="/pages/photo-prep">Photo Prep</a>
+        <button type="button" id="ycs-analysis-mode-structured" aria-current="page">Structured Analysis</button>
+        <a id="ycs-analysis-signature-link" href="/pages/signature-color-analysis">Lip &amp; Draping Studio</a>
+      </nav>
       <div class="ycs-analysis-header">
         <p class="ycs-analysis-kicker">Style Masters</p>
-        <h1 class="ycs-analysis-title">Color Analysis Tool</h1>
+        <h1 class="ycs-analysis-title">Structured Analysis</h1>
         <p class="ycs-analysis-subtitle">
           Compare draping colors side by side on the same saved photo.
         </p>
@@ -181,31 +183,6 @@
             </a>
           </div>
         {% endif %}
-      </div>
-
-      <div class="ycs-analysis-mode-switch" role="tablist" aria-label="Analysis mode">
-        <button type="button" id="ycs-analysis-mode-structured" class="ycs-analysis-mode-btn is-active">
-          Structured Analysis
-        </button>
-        <div class="ycs-analysis-mode-actions">
-          {% if is_admin or is_trade or is_catool or is_catool_growth %}
-            <a
-              id="ycs-analysis-signature-link"
-              href="/pages/signature-color-analysis"
-              class="ycs-analysis-toolbar-link"
-            >
-              Lip & Draping Studio
-            </a>
-          {% endif %}
-          <a id="ycs-analysis-photo-prep-link" href="/pages/photo-prep" class="ycs-analysis-toolbar-link">
-            Back to Photo Prep
-          </a>
-          {% if is_catool_growth %}
-            <button type="button" id="ycs-custom-palettes-open" class="ycs-analysis-toolbar-link ycs-analysis-toolbar-link--button">
-              My Custom Palettes
-            </button>
-          {% endif %}
-        </div>
       </div>
 
       <div class="ycs-analysis-toolbar">

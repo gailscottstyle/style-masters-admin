@@ -636,6 +636,7 @@
         : "";
 
     return `
+      <section class="sm-photo-library" data-sm-source-gallery data-client-record-id="${escapeHtml(client.clientRecordId)}"></section>
       <section class="ycs-client-photo-manager__panel" data-ycs-client-photo-manager-panel data-client-record-id="${escapeHtml(client.clientRecordId)}">
         <div class="ycs-client-photo-manager__head">
           <div>
@@ -2230,7 +2231,7 @@
         const hasPhoto = clientHasPhoto(client);
 
         return `
-      <article class="ycs-client-card">
+      <article class="ycs-client-card${client.membershipStatus === 'Inactive' ? ' sm-member-inactive' : ''}">
         <div class="ycs-client-card__photo">
           ${renderPhoto(client, "ycs-client-card")}
         </div>

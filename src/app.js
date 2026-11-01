@@ -13,7 +13,7 @@ const redirect = (location, headers = {}) => new Response(null, { status: 303, h
 const escape = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const MIME = { '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.svg': 'image/svg+xml' };
 const pages = { '/': 'dashboard', '/palettes': 'palettes', '/pages/ycs-color-palettes': 'ycs-palettes', '/pages/my-custom-palettes': 'custom-palettes', '/pages/member-palette': 'palette-viewer', '/pages/palette': 'palette-viewer', '/pages/member-color': 'color-viewer', '/clients': 'my-clients', '/pages/my-clients': 'my-clients', '/pages/photo-prep': 'photo-prep', '/pages/color-analysis-tool': 'color-analysis-tool', '/pages/signature-color-analysis': 'signature-color-analysis' };
-const writeRoutes = new Set(['create-consultant-client','update-consultant-client','delete-consultant-client','save-photo','save-photo-transform','set-active-photo','save-draped-image','save-saved-draped-image','save-color-analysis-report','upload-report-logo','remove-background']);
+const writeRoutes = new Set(['create-consultant-client','update-consultant-client','delete-consultant-client','save-photo','save-photo-transform','set-active-photo','delete-customer-photo','save-draped-image','save-saved-draped-image','save-color-analysis-report','upload-report-logo','remove-background']);
 
 export function createApp({ env = process.env, directory = resolve('.local'), dist = resolve('dist'), store = new Store({ directory, token: env.DEMO_MODE === 'true' && !env.VERCEL && env.NODE_ENV !== 'production' ? '' : env.AIRTABLE_TOKEN, baseId: env.AIRTABLE_BASE_ID }) } = {}) {
   const demo = env.DEMO_MODE === 'true' && !env.VERCEL && env.NODE_ENV !== 'production';
@@ -101,6 +101,19 @@ export function createApp({ env = process.env, directory = resolve('.local'), di
       const changes = adjusted ? { adjustedPhotoUrl: media.imageUrl } : { originalPhotoUrl: media.imageUrl, adjustedPhotoUrl: '', photoTransform: null, lipMask: null };
       await store.put('Customers', { ...row, ...changes, activePhotoUrl: media.imageUrl, activePhotoId: photo.id, updatedAt: photo.createdAt });
       return json({ success: true, imageUrl: media.imageUrl, ...customerView(row), saveType: body.saveType });
+    }
+    if (route === 'delete-customer-photo') {
+      const row = await customer(id);
+      const photos = await store.list('Photos');
+      const photo = photos.find(p => p.id === body.photoId && p.clientRecordId === id && !p.archived);
+      if (!photo) return json({ error: 'Photo not found.' }, 404);
+      const remaining = photos.filter(p => p.clientRecordId === id && !p.archived && p.id !== photo.id);
+      if (row.activePhotoId === photo.id || (!row.activePhotoId && row.activePhotoUrl === photo.imageUrl)) {
+        const next = remaining[0];
+        await store.put('Customers', {...row, activePhotoId: next?.id || '', activePhotoUrl: next?.imageUrl || '', originalPhotoUrl: next?.originalPhotoUrl || next?.imageUrl || '', adjustedPhotoUrl: next?.adjustedPhotoUrl || '', photoTransform: next?.photoTransform || null, lipMask: next?.lipMask || null, updatedAt: new Date().toISOString()});
+      }
+      await store.put('Photos', {...photo, archived: true});
+      return json({success: true});
     }
     if (route === 'set-active-photo') {
       const row = await customer(id);
