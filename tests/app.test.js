@@ -135,6 +135,11 @@ test('monthly hub drafts stay private; published links persist and escape conten
  const input={action:'save',month:'2026-12',title:'<script>bad</script>',description:'Welcome',videoUrl:'https://example.com/recording',pdfUrl:'/uploads/test.pdf',pdfName:'Guide.pdf',status:'draft'};
  const first=await hub.admin('POST',input,true);const slug=first.month.slug;
  assert.equal((await hub.publicPage(slug)).status,404);
+ await assert.rejects(hub.admin('POST',{...input,id:first.month.id,pdfUrl:'',videoUrl:'',status:'published'},true),/Add the PDF/);
+ const pdfOnly=await hub.admin('POST',{...input,id:first.month.id,videoUrl:'',status:'published'},true);
+ assert.equal(pdfOnly.month.slug,slug);
+ const pdfPage=await hub.publicPage(slug);assert.equal(pdfPage.status,200);
+ const pdfHtml=await pdfPage.text();assert.ok(pdfHtml.includes('Open PDF'));assert.ok(pdfHtml.includes('Recording coming soon'));assert.ok(!pdfHtml.includes('Watch recording'));assert.ok(!pdfHtml.includes('href=""'));
  const published=await hub.admin('POST',{...input,id:first.month.id,status:'published'},true);
  assert.equal(published.month.slug,slug);
  let page=await hub.publicPage(slug);assert.equal(page.status,200);const html=await page.text();assert.ok(html.includes('&lt;script&gt;'));assert.ok(!html.includes('<script>bad'));assert.ok(html.includes('Open PDF'));assert.ok(html.includes('Watch recording'));assert.ok(!html.includes('Sign out'));

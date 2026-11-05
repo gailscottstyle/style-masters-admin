@@ -65,6 +65,6 @@ The local preview uses sample colors. The actual YCS reference colors must be mi
 
 ## Monthly member content
 
-Open **Member Hub** from the dashboard (`/admin/months`). Create a month, upload a PDF (up to 10 MB on the configured Cloudinary plan), paste an HTTPS recording share link, then save as Published. Use **Copy member link** to email the stable `/members/...` URL. PDFs upload directly to Cloudinary so they do not pass through Vercel's function body limit. Enable Cloudinary's PDF delivery setting before publishing.
+Open **Member Hub** from the dashboard (`/admin/months`). Create a month, upload a PDF (up to 10 MB on the configured Cloudinary plan), then save as Published. The recording is optional: add its HTTPS share link later and save again. Until then, the member page shows “Recording coming soon.” Use **Copy member link** to email the stable `/members/...` URL. PDFs upload directly to Cloudinary so they do not pass through Vercel's function body limit. Enable Cloudinary's PDF delivery setting before publishing.
 
 MonthlyContent uses one Airtable row per month. Drafts and all management actions require the administrator login. Published pages are available to anyone with their unlisted link, have no expiration, and are marked noindex. Video provider permissions still apply. Updating a month preserves its link; switching back to Draft removes page access after caches expire (up to about two minutes). Previously shared direct PDF/video URLs are not revoked by unpublishing. Public page reads use a short cache to reduce Airtable API usage.
