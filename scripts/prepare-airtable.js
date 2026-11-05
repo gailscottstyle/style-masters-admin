@@ -1,6 +1,6 @@
 // Default is a schema preview; --apply explicitly creates missing destination tables.
 import { DESTINATION_BASE } from '../src/store.js';
-const tableNames=['Customers','Photos','SavedImages','Reports','ReferenceData','SourceArchive','CustomPalettes'];
+const tableNames=['Customers','Photos','SavedImages','Reports','ReferenceData','SourceArchive','CustomPalettes','MonthlyContent'];
 const schemas=tableNames.map(name=>({name,fields:[{name:'Key',type:'singleLineText'},{name:'Data',type:'multilineText'},...(name==='Customers'?[{name:'Name',type:'singleLineText'},{name:'Email',type:'email'},{name:'MembershipStatus',type:'singleSelect',options:{choices:[{name:'None'},{name:'Active'},{name:'Inactive'}]}},{name:'IsClient',type:'checkbox',options:{icon:'check',color:'greenBright'}},{name:'ColorType',type:'singleLineText'}]:[])]}));
 if(!process.argv.includes('--apply')) {console.log(JSON.stringify({baseId:DESTINATION_BASE,tables:schemas},null,2));process.exit(0);}
 const token=process.env.AIRTABLE_TOKEN;if(!token) throw Error('Configure the destination token securely first.');

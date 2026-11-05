@@ -55,10 +55,16 @@ The four templates and three studio/client scripts were adapted from the local M
 
 ## Dashboard and palettes
 
-The home page has exactly two cards: Clients & Members and Color Palettes. The palette hub, collection, custom palette editor, color fan, and color detail UI are adapted from the newer My YCS professional screens in the client-multiple-photos checkout. All calls use the standalone authenticated backend. Custom colors and palettes support editing, assignments, ordering, CSV creation/append, and archival; favorites are stored independently by palette. Original YCS logos and storefront dependencies are removed. Missing depth metadata does not hide a color.
+The home page has Clients & Members, Color Palettes, and Member Hub cards. The palette hub, collection, custom palette editor, color fan, and color detail UI are adapted from the newer My YCS professional screens in the client-multiple-photos checkout. All calls use the standalone authenticated backend. Custom colors and palettes support editing, assignments, ordering, CSV creation/append, and archival; favorites are stored independently by palette. Original YCS logos and storefront dependencies are removed. Missing depth metadata does not hide a color.
 
 The local preview uses sample colors. The actual YCS reference colors must be migrated before production palette review. The current extracted Trade editor does not provide public client share links; adding the handoff document's newer public sharing flow remains a separate parity item.
 
 ## Vercel setup message
 
 “Style Masters setup is not complete” is returned intentionally until `ADMIN_PASSWORD_HASH`, a `SESSION_SECRET` of at least 32 characters, and `AIRTABLE_TOKEN` are configured. Use Gail's destination Airtable token, with record read/write and schema read/write permissions restricted to the destination base. Create the destination tables with `scripts/prepare-airtable.js --apply` before loading customer or palette data. Add Gail's Cloudinary settings before uploading photos. Environment changes require a new deployment. Never enable sample mode as a production workaround.
+
+## Monthly member content
+
+Open **Member Hub** from the dashboard (`/admin/months`). Create a month, upload a PDF (up to 10 MB on the configured Cloudinary plan), paste an HTTPS recording share link, then save as Published. Use **Copy member link** to email the stable `/members/...` URL. PDFs upload directly to Cloudinary so they do not pass through Vercel's function body limit. Enable Cloudinary's PDF delivery setting before publishing.
+
+MonthlyContent uses one Airtable row per month. Drafts and all management actions require the administrator login. Published pages are available to anyone with their unlisted link, have no expiration, and are marked noindex. Video provider permissions still apply. Updating a month preserves its link; switching back to Draft removes page access after caches expire (up to about two minutes). Previously shared direct PDF/video URLs are not revoked by unpublishing. Public page reads use a short cache to reduce Airtable API usage.

@@ -6,13 +6,14 @@ import { expandRecords } from './compact-records.js';
 import { Store } from './store.js';
 import { customerInput, customerView } from './customers.js';
 import { passwordMatches, readSession, sessionToken, signSession } from './auth.js';
+import { createMonthlyContent } from './monthly-content.js';
 import { uploadImage } from './media.js';
 
 const json = (body, status = 200) => Response.json(body, { status });
 const redirect = (location, headers = {}) => new Response(null, { status: 303, headers: { Location: location, ...headers } });
 const escape = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const MIME = { '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.svg': 'image/svg+xml' };
-const pages = { '/': 'dashboard', '/palettes': 'palettes', '/pages/ycs-color-palettes': 'ycs-palettes', '/pages/my-custom-palettes': 'custom-palettes', '/pages/member-palette': 'palette-viewer', '/pages/palette': 'palette-viewer', '/pages/member-color': 'color-viewer', '/clients': 'my-clients', '/pages/my-clients': 'my-clients', '/pages/photo-prep': 'photo-prep', '/pages/color-analysis-tool': 'color-analysis-tool', '/pages/signature-color-analysis': 'signature-color-analysis' };
+const MIME = { '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.pdf': 'application/pdf' };
+const pages = { '/admin/months': 'monthly-content', '/': 'dashboard', '/palettes': 'palettes', '/pages/ycs-color-palettes': 'ycs-palettes', '/pages/my-custom-palettes': 'custom-palettes', '/pages/member-palette': 'palette-viewer', '/pages/palette': 'palette-viewer', '/pages/member-color': 'color-viewer', '/clients': 'my-clients', '/pages/my-clients': 'my-clients', '/pages/photo-prep': 'photo-prep', '/pages/color-analysis-tool': 'color-analysis-tool', '/pages/signature-color-analysis': 'signature-color-analysis' };
 const writeRoutes = new Set(['create-consultant-client','update-consultant-client','delete-consultant-client','save-photo','save-photo-transform','set-active-photo','delete-customer-photo','save-draped-image','save-saved-draped-image','save-color-analysis-report','upload-report-logo','remove-background']);
 
 export function createApp({ env = process.env, directory = resolve('.local'), dist = resolve('dist'), store = new Store({ directory, token: env.DEMO_MODE === 'true' && !env.VERCEL && env.NODE_ENV !== 'production' ? '' : env.AIRTABLE_TOKEN, baseId: env.AIRTABLE_BASE_ID }) } = {}) {
@@ -20,6 +21,7 @@ export function createApp({ env = process.env, directory = resolve('.local'), di
   const email = env.ADMIN_EMAIL || 'gailscottstyle@gmail.com';
   const secret = env.SESSION_SECRET;
   const attempts = new Map();
+  const monthly=createMonthlyContent({store,env,directory});
   async function customer(id) {
     const row = id && await store.get('Customers', id);
     if (!row || row.archived) throw Object.assign(new Error('Customer not found.'), { status: 404 });
@@ -65,6 +67,7 @@ export function createApp({ env = process.env, directory = resolve('.local'), di
       attempts.delete(ip);
       return redirect('/', { 'Set-Cookie': `sm_session=${signSession(email, secret)}; Path=/; HttpOnly; SameSite=Strict; Max-Age=28800${url.protocol === 'https:' ? '; Secure' : ''}` });
     }
+    if (path.startsWith('/members/') && ['GET','HEAD'].includes(request.method)) return monthly.publicPage(path.slice(9));
     const session = localDemo ? { email } : readSession(sessionToken(request), secret, email);
     if (!session) return path.startsWith('/api/') || path.startsWith('/apps/') ? json({ error: 'Sign in required.' }, 401) : redirect('/login');
     if (path === '/logout' && request.method === 'POST') return redirect('/login', { 'Set-Cookie': 'sm_session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0' });
@@ -74,6 +77,7 @@ export function createApp({ env = process.env, directory = resolve('.local'), di
     const route = path.replace('/api/', '');
     if (writeRoutes.has(route) && request.method !== 'POST') return json({ error: 'Method not allowed.' }, 405);
     const body = modifying && path !== '/logout' ? await request.json() : {};
+    if(route==='monthly-content')return json(await monthly.admin(request.method,body,localDemo));
     const id = body.clientRecordId || q.get('clientRecordId');
     const upload = data => uploadImage(data, { demo: localDemo, directory, env });
 
@@ -210,7 +214,7 @@ export function createApp({ env = process.env, directory = resolve('.local'), di
     let response;
     try { response = await dispatch(request); }
     catch (error) { console.error(error.message); response = json({ error: error.status ? error.message : 'Unable to complete this request. Check the application configuration and try again.' }, error.status || 400); }
-    response.headers.set('Cache-Control', 'no-store');
+    if(!response.headers.has('Cache-Control'))response.headers.set('Cache-Control', 'no-store');
     response.headers.set('X-Content-Type-Options', 'nosniff');
     response.headers.set('X-Frame-Options', 'DENY');
     response.headers.set('Referrer-Policy', 'same-origin');

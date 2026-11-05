@@ -81,9 +81,9 @@ test('owner login issues a cookie that authorizes data access and logout expires
  const response=await app(new Request('http://localhost/api/get-consultant-clients',{headers:{Cookie:cookie.split(';')[0]}}));assert.equal(response.status,200);
  const logout=await app(new Request('http://localhost/logout',{method:'POST',headers:{Origin:'http://localhost',Cookie:cookie.split(';')[0]}}));assert.match(logout.headers.get('set-cookie'),/Max-Age=0/);
 });
-test('dashboard contains exactly the two requested cards and palette routes render',async t=>{
+test('dashboard includes member hub and palette routes render',async t=>{
  const {request}=await fixture(t);const html=await (await request('/')).text();
- assert.equal((html.match(/<article /g)||[]).length,2);assert.match(html,/Clients &amp; Members/);assert.match(html,/Color Palettes/);
+ assert.equal((html.match(/<article /g)||[]).length,3);assert.match(html,/Clients &amp; Members/);assert.match(html,/Color Palettes/);
  for(const path of ['/palettes','/pages/ycs-color-palettes','/pages/my-custom-palettes','/pages/member-palette','/pages/member-color']){
   const res=await request(path);assert.equal(res.status,200);const text=await res.text();assert.ok(!text.includes('{%'));assert.ok(!text.includes('ycs-palette-app.vercel.app'));assert.ok(!text.includes('cdn.shopify.com'));assert.ok(!text.includes('YourColorStyle_Logo'));
  }
@@ -126,4 +126,32 @@ test('photo selection restores its own position and lips; deletion preserves dra
  await request('/api/delete-customer-photo',{clientRecordId:id,photoId:'first'});
  loaded=await (await request('/api/get-photo?clientRecordId='+id)).json();assert.equal(loaded.activePhotoUrl,'');assert.equal(loaded.photoTransform,null);
  assert.equal((await request('/api/delete-customer-photo')).status,405);
+});
+
+test('monthly hub drafts stay private; published links persist and escape content',async t=>{
+ const {request,store,directory}=await fixture(t);
+ const {createMonthlyContent}=await import('../src/monthly-content.js');
+ const hub=createMonthlyContent({store,env:{},directory});
+ const input={action:'save',month:'2026-12',title:'<script>bad</script>',description:'Welcome',videoUrl:'https://example.com/recording',pdfUrl:'/uploads/test.pdf',pdfName:'Guide.pdf',status:'draft'};
+ const first=await hub.admin('POST',input,true);const slug=first.month.slug;
+ assert.equal((await hub.publicPage(slug)).status,404);
+ const published=await hub.admin('POST',{...input,id:first.month.id,status:'published'},true);
+ assert.equal(published.month.slug,slug);
+ let page=await hub.publicPage(slug);assert.equal(page.status,200);const html=await page.text();assert.ok(html.includes('&lt;script&gt;'));assert.ok(!html.includes('<script>bad'));assert.ok(html.includes('Open PDF'));assert.ok(html.includes('Watch recording'));assert.ok(!html.includes('Sign out'));
+ await hub.admin('POST',{...input,id:first.month.id,title:'Updated title',month:'2027-01',status:'published'},true);assert.equal((await store.list('MonthlyContent'))[0].slug,slug);
+ await assert.rejects(hub.admin('POST',{...input,videoUrl:'javascript:alert(1)'},true));
+ await assert.rejects(hub.admin('POST',{...input,pdfUrl:'https://other.example/file.pdf'},true));
+ await assert.rejects(hub.admin('POST',{...input,month:'2027-01'},true),/already exists/);
+ await hub.admin('POST',{...input,id:first.month.id,status:'draft'},true);assert.equal((await hub.publicPage(slug)).status,404);
+ assert.equal((await request('/api/monthly-content',{...input,status:'published'})).status,400); // duplicate month
+});
+test('monthly hub public pages do not expose admin APIs or drafts',async t=>{
+ const env={ADMIN_EMAIL:'gail@example.com',ADMIN_PASSWORD_HASH:passwordHash('example-password'),SESSION_SECRET:'x'.repeat(40),AIRTABLE_TOKEN:'configured'};
+ const {request,store}=await fixture(t,env);const slug='2026-12-11111111-1111-4111-8111-111111111111';
+ await store.put('MonthlyContent',{id:'1',slug,month:'2026-12',title:'December',status:'published',pdfUrl:'https://example.com/test.pdf',videoUrl:'https://example.com/recording'});
+ assert.equal((await request('/members/'+slug)).status,200);
+ assert.equal((await request('/api/monthly-content')).status,401);
+ assert.equal((await request('/api/monthly-content',{action:'upload-settings'})).status,401);
+ assert.equal((await request('/admin/months')).status,303);
+ assert.equal((await request('/members/2026-12-not-found')).status,404);
 });
